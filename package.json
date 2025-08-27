@@ -2,11 +2,13 @@
   "name": "checkthecar",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build && next-sitemap",
+  "start": "next start",
+  "lint": "next lint",
+  "etl:fixtures": "pytest -q && echo 'Using fixtures only'",
+  "test": "pytest -q"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.7.0",
