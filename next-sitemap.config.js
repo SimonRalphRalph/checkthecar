@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: 'https://checkthecar.example', // change this once you deploy
+  siteUrl: 'https://checkthecar.example',
   generateRobotsTxt: true,
-  exclude: ['/admin/*', '/api/*'],
+  exclude: ['/admin/*', '/api/*']
 }
