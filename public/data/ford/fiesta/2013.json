@@ -1,0 +1,22 @@
+{
+  "make":"Ford",
+  "model":"Fiesta",
+  "firstRegYear":2013,
+  "pass_rate_by_age":[
+    {"age":8,"pass_rate":0.79},
+    {"age":9,"pass_rate":0.76},
+    {"age":10,"pass_rate":0.73},
+    {"age":11,"pass_rate":0.70},
+    {"age":12,"pass_rate":0.68}
+  ],
+  "mileage_percentiles_by_age":[
+    {"age":8,"p50":96000,"p75":115000,"p90":130000},
+    {"age":9,"p50":108000,"p75":128000,"p90":145000},
+    {"age":10,"p50":120000,"p75":140000,"p90":160000},
+    {"age":11,"p50":131000,"p75":153000,"p90":175000},
+    {"age":12,"p50":142000,"p75":166000,"p90":190000}
+  ],
+  "failure_shares":{"brakes":0.21,"suspension":0.17,"tyres":0.16,"emissions":0.08},
+  "recalls_timeline":[{"year":2013,"count":2},{"year":2014,"count":1},{"year":2017,"count":1}],
+  "official":{"co2_g_km":104,"mpg_combined":65.7,"cycle":"NEDC"}
+}
