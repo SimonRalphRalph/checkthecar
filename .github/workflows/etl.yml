@@ -1,22 +1,34 @@
 # .github/workflows/etl.yml
-name: Weekly ETL
+name: Weekly ETL (publish cohort JSON)
 
 on:
   schedule:
     - cron: "0 3 * * 1"   # Mondays 03:00 UTC
   workflow_dispatch: {}
+  push:
+    paths:
+      - "etl/**"
+      - "data_intermediate/**"
+      - ".github/workflows/etl.yml"
+      - "requirements.txt"
 
 jobs:
   build-data:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
-      contents: write    # to commit JSON into repo
+      contents: write
+    concurrency:
+      group: etl-${{ github.ref }}
+      cancel-in-progress: false
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -34,20 +46,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Download latest source CSV/ZIPs
+      - name: Sanity check inputs
         run: |
-          # Your existing scripts:
-          python -m etl.download_mot --latest   # writes Parquet dataset under data_intermediate/mot/
-          python -m etl.recalls data_raw/RecallsFile.csv
-          python -m etl.vca_co2 data_raw/vca.csv
-          # ved_bands.json: either generated or updated manually; ensure it exists
-          test -f data_intermediate/ved_bands.json
+          test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
+
+      - name: Download latest source CSV/ZIPs (optional)
+        run: |
+          # If you have a downloader, leave these. If not, comment them out.
+          # python -m etl.download_mot --latest
+          # python -m etl.recalls data_raw/RecallsFile.csv
+          # python -m etl.vca_co2 data_raw/vca.csv
 
       - name: Aggregate MOT -> Parquet
         run: python -m etl.aggregate_mot
 
+      - name: Build recalls parquet (optional)
+        if: ${{ hashFiles('etl/recalls.py') != '' && hashFiles('data_raw/RecallsFile.csv') != '' }}
+        run: python -m etl.recalls data_raw/RecallsFile.csv
+
+      - name: Build VCA parquet (optional)
+        if: ${{ hashFiles('etl/vca_co2.py') != '' && hashFiles('data_raw/vca.csv') != '' }}
+        run: python -m etl.vca_co2 data_raw/vca.csv
+
       - name: Join & publish JSON
         run: python -m etl.join_publish
+
+      - name: Quick validation of outputs
+        run: |
+          test -d public/data || (echo "No public/data directory" && exit 1)
+          COUNT=$(find public/data -type f -name "*.json" | wc -l)
+          echo "JSON files: $COUNT"
+          if [ "$COUNT" -eq "0" ]; then
+            echo "No cohort JSONs were produced"; exit 2
+          fi
 
       - name: Commit cohort JSON
         run: |
