@@ -1,34 +1,29 @@
 # etl/ved.py
-"""
-Computes indicative annual VED based on first registration date and CO2 band.
-Backed by GOV.UK tables & V149 PDF (April 2025). We simplify:
- - Cars registered 1 Mar 2001–31 Mar 2017: CO2 bands A–M
- - Cars from 1 Apr 2017: standard rate + expensive car supplement (if applicable)
- - We expose "band_label" and "annual_standard_rate" (ignore first-year showroom rate)
-References: GOV.UK rate tables + V149 PDFs.   [oai_citation:17‡GOV.UK](https://www.gov.uk/vehicle-tax-rate-tables?utm_source=chatgpt.com) [oai_citation:18‡GOV.UK](https://assets.publishing.service.gov.uk/media/67d1b940a6d78876a3fb0a67/v149-rates-of-vehicle-tax-for-cars-motorcycles-light-goods-vehicles-and-private-light-goods-vehicles-april-2025.pdf?utm_source=chatgpt.com)
-"""
-from dataclasses import dataclass
+import json
+from pathlib import Path
+import pandas as pd
 
-@dataclass
-class Ved:
-    band_label: str
-    annual_gbp: int
-    notes: str
+def load_ved_bands(json_path: str) -> dict:
+    with open(json_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-def compute_ved(first_reg_year: int, co2_g_km: int, list_price_gt_40k: bool=False) -> Ved:
-    if 2001 <= first_reg_year <= 2016:
-        # Simplified bands (example numbers — check PDF in CI; keep JSON mapping in repo for accuracy)
-        bands = [
-            (100, "A", 0), (110, "B", 20), (120, "C", 35), (130, "D", 150),
-            (140, "E", 180), (150, "F", 200), (165, "G", 240), (175, "H", 290),
-            (185, "I", 320), (200, "J", 365), (225, "K", 395), (255, "L", 675),
-            (10_000, "M", 695),
-        ]
-        for limit, label, amt in bands:
-            if co2_g_km <= limit:
-                return Ved(label, amt, "Pre-2017 CO₂ banding (standard rate).")
-    elif first_reg_year >= 2017:
-        base = 195  # Standard rate 2025/26 example; confirm yearly in etl from V149.  [oai_citation:19‡GOV.UK](https://assets.publishing.service.gov.uk/media/67d1b940a6d78876a3fb0a67/v149-rates-of-vehicle-tax-for-cars-motorcycles-light-goods-vehicles-and-private-light-goods-vehicles-april-2025.pdf?utm_source=chatgpt.com)
-        supplement = 425 if list_price_gt_40k else 0  # 5-year supplement
-        return Ved("Standard", base + supplement, "Post-2017 standard rate; first-year differs.")
-    return Ved("Unknown", 0, "Unable to compute; missing inputs.")
+def ved_for_vehicle(ved_bands: dict, co2_gkm: float, first_use_year: int, fuel_type: str) -> dict:
+    """
+    Simplified: uses current post-2017 graduated bands by CO2 for cars registered
+    after 2001 with caveats omitted for brevity. You can expand this to full rules.
+    Returns: {"band": "H", "annual": 180}
+    """
+    if pd.isna(co2_gkm) or co2_gkm <= 0:
+        return {"band": None, "annual": None}
+    # choose a table key by registration era
+    era = "post2017" if first_use_year >= 2017 else "2001to2017"
+    table = ved_bands.get(era, [])
+    for row in table:
+        lo = row["co2_lo"]; hi = row["co2_hi"]
+        if (co2_gkm >= lo) and (co2_gkm <= hi):
+            return {"band": row["band"], "annual": row["annual"]}
+    # fallback highest
+    if table:
+        row = table[-1]
+        return {"band": row["band"], "annual": row["annual"]}
+    return {"band": None, "annual": None}
