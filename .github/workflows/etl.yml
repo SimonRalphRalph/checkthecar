@@ -1,42 +1,62 @@
+# .github/workflows/etl.yml
 name: Weekly ETL
 
 on:
   schedule:
-    - cron: '0 3 * * 1'  # Mondays 03:00 UTC (~04:00/03:00 UK depending on DST)
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    - cron: "0 3 * * 1"   # Mondays 03:00 UTC
+  workflow_dispatch: {}
 
 jobs:
-  etl:
+  build-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write    # to commit JSON into repo
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install Python deps
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install deps
         run: |
-          python -m pip install -U pip
-          pip install pandas pyarrow requests python-dateutil rapidfuzz tqdm
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Build aggregates (smoke test)
+      - name: Download latest source CSV/ZIPs
         run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          from datetime import datetime, timezone
+          # Your existing scripts:
+          python -m etl.download_mot --latest   # writes Parquet dataset under data_intermediate/mot/
+          python -m etl.recalls data_raw/RecallsFile.csv
+          python -m etl.vca_co2 data_raw/vca.csv
+          # ved_bands.json: either generated or updated manually; ensure it exists
+          test -f data_intermediate/ved_bands.json
 
-          base = Path("public/data")
-          ford = base / "ford/fiesta/2013.json"
-          vw   = base / "vw/polo/2013.json"
-          for p in [ford, vw]:
-              p.parent.mkdir(parents=True, exist_ok=True)
-              data = json.loads(p.read_text()) if p.exists() else {}
-              data["_ci_refreshed_at"] = datetime.now(timezone.utc).isoformat()
-              p.write_text(json.dumps(data, indent=2))
+      - name: Aggregate MOT -> Parquet
+        run: python -m etl.aggregate_mot
+
+      - name: Join & publish JSON
+        run: python -m etl.join_publish
+
+      - name: Commit cohort JSON
+        run: |
+          if [ -n "$(git status --porcelain public/data)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/data
+            git commit -m "ETL: refresh cohort JSON [skip ci]"
+            git push
+          else
+            echo "No changes to commit."
+          fi
