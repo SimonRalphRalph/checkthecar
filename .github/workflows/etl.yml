@@ -1,4 +1,3 @@
-# .github/workflows/etl.yml
 name: Weekly ETL (publish cohort JSON)
 
 on:
@@ -9,6 +8,7 @@ on:
     paths:
       - "etl/**"
       - "data_intermediate/**"
+      - "data/**"
       - ".github/workflows/etl.yml"
       - "requirements.txt"
 
@@ -46,29 +46,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Print ETL paths
+        run: python -m etl.paths
+
       - name: Sanity check inputs
         run: |
           test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
 
-      - name: Download latest source CSV/ZIPs (optional)
-        run: |
-          # If you have a downloader, leave these. If not, comment them out.
-          # python -m etl.download_mot --latest
-          # python -m etl.recalls data_raw/RecallsFile.csv
-          # python -m etl.vca_co2 data_raw/vca.csv
+      # If you want CI to download the three ZIPs each run, uncomment and provide DIRECT .zip URLs:
+      # - name: Download MOT sources (results, failures, lookups)
+      #   run: python -m etl.download_sources "https://..." "https://..." "https://..."
 
-      - name: Aggregate MOT -> Parquet
+      - name: Ensure raw data folders (manual unzip supported)
+        run: |
+          test -d data_raw/results || (echo "Put Results CSVs under data_raw/results (or enable download step)"; exit 1)
+          test -d data_raw/failures || (echo "Put Failures CSVs under data_raw/failures"; exit 1)
+          test -d data_raw/lookups || (echo "Put Lookups CSVs under data_raw/lookups"; exit 1)
+
+      - name: Ingest Results → Parquet (decoded)
+        run: python -m etl.ingest_results
+
+      - name: Ingest Failure Items → Parquet (bucketed)
+        run: python -m etl.ingest_failures
+
+      - name: Seed alias file (safe no-op if already complete)
+        run: python -m etl.alias_seed || true
+
+      - name: Aggregate MOT → Parquet
         run: python -m etl.aggregate_mot
 
-      - name: Build recalls parquet (optional)
-        if: ${{ hashFiles('etl/recalls.py') != '' && hashFiles('data_raw/RecallsFile.csv') != '' }}
-        run: python -m etl.recalls data_raw/RecallsFile.csv
-
-      - name: Build VCA parquet (optional)
-        if: ${{ hashFiles('etl/vca_co2.py') != '' && hashFiles('data_raw/vca.csv') != '' }}
-        run: python -m etl.vca_co2 data_raw/vca.csv
-
-      - name: Join & publish JSON
+      - name: Join & publish JSON to public/data
         run: python -m etl.join_publish
 
       - name: Quick validation of outputs
