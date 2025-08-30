@@ -1,87 +1,104 @@
 # etl/aggregate_mot.py
-import pandas as pd, numpy as np
-from typing import Dict, Any
-from pathlib import Path
+import pandas as pd
+import pyarrow as pa
+import pyarrow.dataset as ds
+import pyarrow.compute as pc
+from .paths import MOT_PARQUET, MOT_AGG_PARQUET
+from .resolver import normalise_df
 
-SCHEMA_COLS = {
-    "make": "string",
-    "model": "string",
-    "firstUseDate": "string",   # yyyy-mm-dd
-    "testDate": "string",
-    "odometerReading": "Int64",
-    "odometerReadingUnits": "string",
-    "testResult": "string",     # PASS/FAIL
-    "rfrAndComments": "string", # DVSA reason codes
-    "fuelType": "string",
-}
+def read_dataset(columns=None, filter_=None) -> pa.Table:
+    dataset = ds.dataset(MOT_PARQUET, format="parquet", partitioning="hive")
+    return dataset.to_table(columns=columns, filter=filter_)
 
-FAIL_GROUPS = {
-    "brakes": ["RBT", "BGT", "BRS", "HDB"],
-    "suspension": ["SUS"],
-    "tyres": ["TRY", "WHL"],
-    "emissions": ["EMI"],
-    "lights": ["LGT"],
-}
+def compute_aggregates() -> pd.DataFrame:
+    cols = [
+        "make","model","first_use_year","age_at_test",
+        "fuel_type","odometer","result",
+        # Optional: if another file later adds it, we’ll pick it up
+        "rfr_and_comments_code",
+    ]
+    tbl = read_dataset(columns=[c for c in cols if c in ds.dataset(MOT_PARQUET, format="parquet", partitioning="hive").schema.names])
 
-def _age_year(test_date: pd.Series, first_use: pd.Series) -> pd.Series:
-    td = pd.to_datetime(test_date, errors="coerce")
-    fu = pd.to_datetime(first_use, errors="coerce")
-    return ((td - fu).dt.days / 365.25).fillna(0).astype(int).clip(lower=0, upper=25)
+    # Casts
+    def _cast_safe(t: pa.Table, name: str, typ: pa.DataType):
+        if name in t.schema.names:
+            return t.set_column(t.schema.get_field_index(name), name, pc.cast(t[name], typ))
+        return t
 
-def _km(odo: pd.Series, units: pd.Series) -> pd.Series:
-    miles = odo.where(units.str.lower().str.contains("miles"), other=np.nan)
-    km = odo.where(units.str.lower().str.contains("kilomet"), other=np.nan)
-    out = pd.Series(np.where(~miles.isna(), miles*1.60934, km), index=odo.index).astype(float)
-    return out
+    tbl = _cast_safe(tbl, "first_use_year", pa.int16())
+    tbl = _cast_safe(tbl, "age_at_test", pa.int16())
+    tbl = _cast_safe(tbl, "odometer", pa.int32())
 
-def compute_aggregates(df: pd.DataFrame) -> Dict[str, Any]:
-    df = df.copy()
-    df["make"] = df["make"].str.strip()
-    df["model"] = df["model"].str.strip()
-    df["firstRegYear"] = pd.to_datetime(df["firstUseDate"], errors="coerce").dt.year
-    df["ageAtTest"] = _age_year(df["testDate"], df["firstUseDate"])
-    df["odo_km"] = _km(df["odometerReading"], df["odometerReadingUnits"])
-    df["isPass"] = (df["testResult"].str.upper() == "PASS")
+    df = tbl.to_pandas(types_mapper=pd.ArrowDtype)
+    df = normalise_df(df, "make", "model")
 
-    # Mileage percentiles by age
-    q = df.groupby(["make","model","firstRegYear","ageAtTest"])["odo_km"].quantile([0.5,0.75,0.9]).unstack()
-    q.columns = ["p50_km","p75_km","p90_km"]
+    # Pass/fail
+    df["is_pass"] = (df["result"].astype(str).str.upper() == "PASS").astype("int8")
 
-    # Pass rate by age
-    g = df.groupby(["make","model","firstRegYear","ageAtTest"])["isPass"].mean().to_frame("pass_rate")
+    # Mileage in thousands; basic sanity guard
+    df["odo_k"] = pd.to_numeric(df["odometer"], errors="coerce") / 1000.0
+    df.loc[(df["odo_k"] < 1) | (df["odo_k"] > 600), "odo_k"] = pd.NA
 
-    # Failure categories shares
-    df["rfrCode"] = df["rfrAndComments"].str.extract(r"^([A-Z]{3})", expand=False)
-    cat = pd.DataFrame()
-    for name, prefixes in FAIL_GROUPS.items():
-        mask = df["rfrCode"].isin(prefixes) & ~df["isPass"]
-        tmp = mask.groupby([df["make"],df["model"],df["firstRegYear"]]).mean().rename(f"fail_{name}")
-        cat = tmp.to_frame() if cat.empty else cat.join(tmp, how="outer")
-    cat = cat.fillna(0.0)
+    grp = ["norm_make","norm_model","make_slug","model_slug","first_use_year","age_at_test","fuel_type"]
+    base = (
+        df.groupby(grp, dropna=False)
+          .agg(
+              tests=("is_pass","size"),
+              passes=("is_pass","sum"),
+              median_mileage=("odo_k","median"),
+              p75_mileage=("odo_k", lambda s: s.quantile(0.75)),
+              p90_mileage=("odo_k", lambda s: s.quantile(0.90)),
+          ).reset_index()
+    )
+    base["pass_rate"] = (base["passes"] / base["tests"]).astype("float32")
 
-    out = g.join(q, how="left").reset_index()
-    # pack per cohort-year structure
-    results: Dict[str, Any] = {}
-    for (mk,md,yr), grp in out.groupby(["make","model","firstRegYear"]):
-        results.setdefault(mk, {}).setdefault(md, {})[int(yr)] = {
-            "pass_rate_by_age": [
-                {"age": int(r.ageAtTest), "pass_rate": round(float(r.pass_rate), 3)}
-                for r in grp.itertuples()
-            ],
-            "mileage_percentiles_by_age": [
-                {"age": int(r.ageAtTest), "p50": round(float(r.p50_km or 0)),
-                 "p75": round(float(r.p75_km or 0)), "p90": round(float(r.p90_km or 0))}
-                for r in grp.itertuples()
-            ],
-        }
-    # attach failure shares
-    for (mk,md,yr), row in cat.reset_index().itertuples(index=False):
-        c = results.get(mk, {}).get(md, {}).get(int(yr))
-        if c is not None:
-            c["failure_shares"] = {
-                "brakes": round(float(row.fail_brakes or 0),3),
-                "suspension": round(float(row.fail_suspension or 0),3),
-                "tyres": round(float(row.fail_tyres or 0),3),
-                "emissions": round(float(row.fail_emissions or 0),3),
-            }
-    return results
+    # ---- Failure buckets (optional) -----------------------------------------
+    # Your CSV doesn’t include RFR codes. If present, we’ll compute shares;
+    # otherwise we leave bucket columns empty (0.0).
+    bucket_cols = []
+    if "rfr_and_comments_code" in df.columns:
+        def bucket_from_rfr(code: str) -> str:
+            if not isinstance(code, str) or "." not in code:
+                return "other"
+            head = code.split(".", 1)[0]
+            # DVSA section heads → our buckets
+            if head.startswith("1"): return "brakes"
+            if head.startswith("2"): return "steering"
+            if head.startswith("5"): return "axles_wheels_tyres_suspension"
+            if head.startswith("8"): return "emissions"
+            if head.startswith("4"): return "lights"
+            return "other"
+
+        fdf = df.copy()
+        fdf["is_fail"] = 1 - fdf["is_pass"]
+        fdf = fdf[fdf["is_fail"] == 1]
+        fdf["fail_bucket"] = fdf["rfr_and_comments_code"].astype(str).map(bucket_from_rfr)
+
+        mix = (
+            fdf.groupby(grp + ["fail_bucket"], dropna=False)
+               .size().rename("fail_count").reset_index()
+        )
+        tot = mix.groupby(grp, dropna=False)["fail_count"].sum().rename("fail_total").reset_index()
+        mix = mix.merge(tot, on=grp, how="left")
+        mix["fail_share"] = (mix["fail_count"] / mix["fail_total"]).astype("float32")
+
+        pivot = mix.pivot_table(index=grp, columns="fail_bucket", values="fail_share", fill_value=0.0, aggfunc="sum").reset_index()
+        base = base.merge(pivot, on=grp, how="left").fillna(0.0)
+        bucket_cols = [c for c in base.columns if c in ("brakes","steering","axles_wheels_tyres_suspension","emissions","lights","other")]
+    else:
+        # Ensure predictable columns exist with zeros (frontend expects keys)
+        for c in ("brakes","steering","axles_wheels_tyres_suspension","emissions","lights","other"):
+            base[c] = 0.0
+        bucket_cols = ["brakes","steering","axles_wheels_tyres_suspension","emissions","lights","other"]
+    # ------------------------------------------------------------------------
+
+    # Cast compact
+    for c in ("pass_rate","median_mileage","p75_mileage","p90_mileage", *bucket_cols):
+        base[c] = base[c].astype("float32")
+
+    base.to_parquet(MOT_AGG_PARQUET, index=False)
+    print(f"Wrote {MOT_AGG_PARQUET} with {len(base):,} rows")
+    return base
+
+if __name__ == "__main__":
+    compute_aggregates()
