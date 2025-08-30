@@ -1,44 +1,53 @@
 # etl/ved.py
 import json
 import pandas as pd
+from typing import Optional, Dict, Any, List
 
 def load_ved_bands(json_path: str) -> dict:
     with open(json_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        cfg = json.load(f)
+    # shallow validation
+    if "eras" not in cfg:
+        raise ValueError("ved_bands.json missing 'eras'")
+    return cfg
 
-def _find_band(bands, co2):
+def _find_band_2001to2017(bands: List[Dict[str, Any]], co2: float) -> Optional[Dict[str, Any]]:
     for row in bands:
         if row["co2_lo"] <= co2 <= row["co2_hi"]:
             return row
     return None
 
+def first_year_rate_post2017(ved_cfg: dict, co2_gkm: float) -> Optional[int]:
+    era = ved_cfg["eras"].get("post2017", {})
+    fy = era.get("first_year", [])
+    for row in fy:
+        if row["co2_lo"] <= co2_gkm <= row["co2_hi"]:
+            return int(row["rate"])
+    return None
+
 def ved_for_vehicle(ved_cfg: dict, co2_gkm: float, first_use_year: int, fuel_type: str) -> dict:
     """
-    Returns: {"band": <str|None>, "annual": <int|None>, "supplement": {"expensive_car": {...}}}
-    Note: first-year rates are not shown in cohort panel (we show ongoing cost). If you want them,
-    add a flag and lookup ved_cfg["eras"]["post2017"]["first_year"] similarly.
+    Returns a dict suitable for your JSON cohort:
+    {
+      "band": <"A"-"M"|None>,
+      "annual": <int|None>,         # ongoing annual rate (NOT first-year)
+      "first_year": <int|None>,     # optional, if you want to show it
+      "supplement": { "expensive_car": {...} } | None
+    }
     """
     if pd.isna(co2_gkm) or co2_gkm <= 0:
-        return {"band": None, "annual": None, "supplement": None}
+        return {"band": None, "annual": None, "first_year": None, "supplement": None}
 
     eras = ved_cfg.get("eras", {})
     if first_use_year >= 2017:
-        std = eras.get("post2017", {}).get("standard_rate", {})
-        # normalise fuel buckets
-        ft = (fuel_type or "").lower()
-        if ft in ("petrol","diesel"):
-            annual = int(std.get("petrol_diesel")) if std else None
-        else:
-            # treat hybrids/alt-fuel as alternative fuel
-            base = std.get("petrol_diesel")
-            disc = std.get("alternative_fuel_discount", 0)
-            annual = int(base - disc) if base is not None else None
-        supp = eras.get("post2017", {}).get("expensive_car_supplement", None)
-        return {"band": None, "annual": annual, "supplement": {"expensive_car": supp}}
+        post = eras.get("post2017", {})
+        annual = post.get("standard_rate")
+        first_year = first_year_rate_post2017(ved_cfg, float(co2_gkm))
+        supp = post.get("expensive_car_supplement", None)
+        return {"band": None, "annual": int(annual) if annual is not None else None, "first_year": first_year, "supplement": {"expensive_car": supp}}
     else:
-        # 2001-2017 CO2 bands
-        bands = eras.get("2001to2017", {}).get("bands", [])
-        row = _find_band(bands, float(co2_gkm))
-        if not row:
-            return {"band": None, "annual": None, "supplement": None}
-        return {"band": row["band"], "annual": int(row["annual"]), "supplement": None}
+        pre = eras.get("2001to2017", {})
+        band_row = _find_band_2001to2017(pre.get("bands", []), float(co2_gkm))
+        if not band_row:
+            return {"band": None, "annual": None, "first_year": None, "supplement": None}
+        return {"band": band_row["band"], "annual": int(band_row["annual"]), "first_year": None, "supplement": None}
