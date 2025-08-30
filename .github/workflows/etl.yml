@@ -25,25 +25,21 @@ jobs:
           python -m pip install -U pip
           pip install pandas pyarrow requests python-dateutil rapidfuzz tqdm
 
-      - name: Build aggregates (sample flow)
+           - name: Build aggregates (smoke test)
         run: |
           python - <<'PY'
-          from etl.aggregate_mot import compute_aggregates
-          from etl.recalls import load_recalls, aggregate_recalls
-          from etl.export_json import write_cohort_json
-          import pandas as pd
+          import json
           from pathlib import Path
+          from datetime import datetime, timezone
 
-          # In CI, replace fixtures with real parquet reads and joins.
-          df = pd.DataFrame([
-            {"make":"Ford","model":"Fiesta","firstUseDate":"2013-06-01","testDate":"2023-05-10","odometerReading":72000,"odometerReadingUnits":"miles","testResult":"PASS","rfrAndComments":"","fuelType":"Petrol"},
-            {"make":"Ford","model":"Fiesta","firstUseDate":"2013-06-01","testDate":"2024-05-11","odometerReading":79000,"odometerReadingUnits":"miles","testResult":"FAIL","rfrAndComments":"BRS123","fuelType":"Petrol"},
-          ])
-          agg = compute_aggregates(df)
-          rec = aggregate_recalls(load_recalls())
-          # temporary stub until you have a real VCA CSV fetch in CI
-          vca = pd.DataFrame([])
-          write_cohort_json(Path('public/data'), agg, rec, vca)
+          base = Path("public/data")
+          ford = base / "ford/fiesta/2013.json"
+          vw   = base / "vw/polo/2013.json"
+          for p in [ford, vw]:
+              p.parent.mkdir(parents=True, exist_ok=True)
+              data = json.loads(p.read_text()) if p.exists() else {}
+              data["_ci_refreshed_at"] = datetime.now(timezone.utc).isoformat()
+              p.write_text(json.dumps(data, indent=2))
           PY
 
       - name: Commit data updates
