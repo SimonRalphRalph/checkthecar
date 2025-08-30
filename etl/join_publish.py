@@ -98,15 +98,17 @@ def build_and_publish():
 
         co2_panel = []
         for vs in vsub.itertuples(index=False):
-            ved = ved_for_vehicle(ved_bands, vs.co2_gkm, int(year), vs.fuel_type)
-            co2_panel.append({
-                "fuel": vs.fuel_type,
-                "co2_gkm": _compact_float(vs.co2_gkm, 0),
-                "mpg": _compact_float(vs.mpg, 0),
-                "test_type": vs.test_type,   # WLTP/NEDC
-                "ved_band": ved["band"],
-                "ved_annual": ved["annual"],
-            })
+           ved = ved_for_vehicle(ved_bands, vs.co2_gkm, int(year), vs.fuel_type)
+co2_panel.append({
+    "fuel": vs.fuel_type,
+    "co2_gkm": _compact_float(vs.co2_gkm, 0),
+    "mpg": _compact_float(vs.mpg, 0),
+    "test_type": vs.test_type,   # WLTP/NEDC
+    "ved_band": ved["band"],
+    "ved_annual": ved["annual"],
+    "ved_first_year": ved.get("first_year"),  # <- new
+    "ved_supplement": ved.get("supplement")   # <- includes expensive-car note for post-2017
+})
 
         recalls = _recall_timeline(rec, mk, md)
 
