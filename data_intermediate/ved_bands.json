@@ -1,0 +1,52 @@
+{
+  "meta": {
+    "effective_from": "2025-04-01",
+    "source": {
+      "govuk_tax_tables": "https://www.gov.uk/vehicle-tax-rate-tables",
+      "v149_pdf": "https://www.gov.uk/government/publications/rates-of-vehicle-tax-v149"
+    }
+  },
+  "eras": {
+    "2001to2017": {
+      "bands": [
+        { "band": "A",  "co2_lo": 0,   "co2_hi": 100, "annual": 20 },
+        { "band": "B",  "co2_lo": 101, "co2_hi": 110, "annual": 20 },
+        { "band": "C",  "co2_lo": 111, "co2_hi": 120, "annual": 35 },
+        { "band": "D",  "co2_lo": 121, "co2_hi": 130, "annual": 165 },
+        { "band": "E",  "co2_lo": 131, "co2_hi": 140, "annual": 195 },
+        { "band": "F",  "co2_lo": 141, "co2_hi": 150, "annual": 215 },
+        { "band": "G",  "co2_lo": 151, "co2_hi": 165, "annual": 265 },
+        { "band": "H",  "co2_lo": 166, "co2_hi": 175, "annual": 315 },
+        { "band": "I",  "co2_lo": 176, "co2_hi": 185, "annual": 345 },
+        { "band": "J",  "co2_lo": 186, "co2_hi": 200, "annual": 395 },
+        { "band": "K",  "co2_lo": 201, "co2_hi": 225, "annual": 430 },
+        { "band": "L",  "co2_lo": 226, "co2_hi": 255, "annual": 735 },
+        { "band": "M",  "co2_lo": 256, "co2_hi": 999, "annual": 760 }
+      ],
+      "notes": "CO₂-based annual rate for cars first registered 1 Mar 2001–31 Mar 2017."
+    },
+    "post2017": {
+      "first_year": [
+        { "co2_lo": 0,   "co2_hi": 0,   "rate": 10 },
+        { "co2_lo": 1,   "co2_hi": 50,  "rate": 110 },
+        { "co2_lo": 51,  "co2_hi": 75,  "rate": 130 },
+        { "co2_lo": 76,  "co2_hi": 90,  "rate": 270 },
+        { "co2_lo": 91,  "co2_hi": 100, "rate": 350 },
+        { "co2_lo": 101, "co2_hi": 110, "rate": 390 },
+        { "co2_lo": 111, "co2_hi": 130, "rate": 440 },
+        { "co2_lo": 131, "co2_hi": 150, "rate": 540 },
+        { "co2_lo": 151, "co2_hi": 170, "rate": 1360 },
+        { "co2_lo": 171, "co2_hi": 190, "rate": 2190 },
+        { "co2_lo": 191, "co2_hi": 225, "rate": 3300 },
+        { "co2_lo": 226, "co2_hi": 255, "rate": 4680 },
+        { "co2_lo": 256, "co2_hi": 999, "rate": 5490 }
+      ],
+      "standard_rate": 195,
+      "expensive_car_supplement": {
+        "threshold_gbp": 40000,
+        "annual": 425,
+        "years_applies": [2, 3, 4, 5, 6]
+      }
+    }
+  }
+}
