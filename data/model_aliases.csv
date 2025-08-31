@@ -1,1 +1,62 @@
-python -m etl.alias_seed
+make_raw,model_raw,canonical_make,canonical_model
+BMW,3 SERIES,BMW,3-Series
+B M W,3 SERIES,BMW,3-Series
+BMW,3-SERIES,BMW,3-Series
+BMW,320,BMW,3-Series
+BMW,318,BMW,3-Series
+BMW,330,BMW,3-Series
+
+MERCEDES,MERCEDES C,Mercedes,C-Class
+MERCEDES,C,Mercedes,C-Class
+MERCEDES-BENZ,C,Mercedes,C-Class
+MERCEDES BENZ,C,Mercedes,C-Class
+MERCEDES-BENZ,C-CLASS,Mercedes,C-Class
+MERCEDES BENZ,C CLASS,Mercedes,C-Class
+MERCEDES-I,C,Mercedes,C-Class
+MERCEDES-I C,,Mercedes,C-Class
+
+MERCEDES,VITO,Mercedes,Vito
+MERCEDES-BENZ,VITO,Mercedes,Vito
+MERCEDES BENZ,VITO,Mercedes,Vito
+MERCEDES-I,VITO,Mercedes,Vito
+
+VAUXHALL,ASTRA,Vauxhall,Astra
+VAUXHALL,Astra,Vauxhall,Astra
+Vauxhall,ASTRA,Vauxhall,Astra
+OPEL,ASTRA,Vauxhall,Astra
+OPEL,Astra,Vauxhall,Astra
+
+HONDA,JAZZ,Honda,Jazz
+Honda,JAZZ,Honda,Jazz
+
+HYUNDAI,I10,Hyundai,i10
+HYUNDAI,i10,Hyundai,i10
+Hyundai,I10,Hyundai,i10
+
+VOLKSWAGEN,POLO,Volkswagen,Polo
+VOLKSWAGEN,GOLF,Volkswagen,Golf
+VW,POLO,Volkswagen,Polo
+VW,GOLF,Volkswagen,Golf
+V W,POLO,Volkswagen,Polo
+V W,GOLF,Volkswagen,Golf
+
+FORD,FIESTA,Ford,Fiesta
+FORD,FOCUS,Ford,Focus
+Ford,FIESTA,Ford,Fiesta
+Ford,FOCUS,Ford,Focus
+
+TOYOTA,YARIS,Toyota,Yaris
+NISSAN,QASHQAI,Nissan,Qashqai
+RENAULT,CLIO,Renault,Clio
+PEUGEOT,308,Peugeot,308
+CITROEN,C3,Citroën,C3
+CITROËN,C3,Citroën,C3
+ŠKODA,OCTAVIA,Skoda,Octavia
+SKODA,OCTAVIA,Skoda,Octavia
+SEAT,LEON,SEAT,Leon
+LAND ROVER,DISCOVERY,Land Rover,Discovery
+LANDROVER,DISCOVERY,Land Rover,Discovery
+RANGE ROVER,EVOQUE,Land Rover,Range Rover Evoque
+MG MOTOR UK,ZS,MG,ZS
+MINI,COOPER,MINI,Cooper
+
