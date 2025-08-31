@@ -1,4 +1,3 @@
-# etl/ved.py
 import json
 import pandas as pd
 from typing import Optional, Dict, Any, List
@@ -6,7 +5,6 @@ from typing import Optional, Dict, Any, List
 def load_ved_bands(json_path: str) -> dict:
     with open(json_path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    # shallow validation
     if "eras" not in cfg:
         raise ValueError("ved_bands.json missing 'eras'")
     return cfg
@@ -26,15 +24,6 @@ def first_year_rate_post2017(ved_cfg: dict, co2_gkm: float) -> Optional[int]:
     return None
 
 def ved_for_vehicle(ved_cfg: dict, co2_gkm: float, first_use_year: int, fuel_type: str) -> dict:
-    """
-    Returns a dict suitable for your JSON cohort:
-    {
-      "band": <"A"-"M"|None>,
-      "annual": <int|None>,         # ongoing annual rate (NOT first-year)
-      "first_year": <int|None>,     # optional, if you want to show it
-      "supplement": { "expensive_car": {...} } | None
-    }
-    """
     if pd.isna(co2_gkm) or co2_gkm <= 0:
         return {"band": None, "annual": None, "first_year": None, "supplement": None}
 
