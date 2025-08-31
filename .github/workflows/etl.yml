@@ -75,6 +75,18 @@ jobs:
       - name: Seed alias file (safe no-op if already complete)
         run: python -m etl.alias_seed || true
 
+      - name: Commit alias updates (if any)
+        run: |
+          if [ -n "$(git status --porcelain data/model_aliases.csv)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/model_aliases.csv
+            git commit -m "Alias seed: update model_aliases.csv [skip ci]" || true
+            git push || true
+          else
+            echo "No alias changes."
+          fi
+
       - name: Aggregate MOT → Parquet
         run: python -m etl.aggregate_mot
 
