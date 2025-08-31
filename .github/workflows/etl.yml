@@ -53,23 +53,18 @@ jobs:
         run: |
           test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
 
-- name: Download MOT sources (results, failures, lookups)
-  run: |
-    python -m etl.download_sources \
-      "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip" \
-      "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip" \
-      "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip"
+      - name: Download MOT sources (results, failures, lookups)
+        run: |
+          python -m etl.download_sources \
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip" \
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip" \
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip"
 
-
-      # If you want CI to download the three ZIPs each run, uncomment and provide DIRECT .zip URLs:
-      # - name: Download MOT sources (results, failures, lookups)
-      #   run: python -m etl.download_sources "https://..." "https://..." "https://..."
-
-    - name: Ensure raw data folders (manual unzip supported)
-  run: |
-    test -d data_raw/results || (echo "Put Results CSVs under data_raw/results (or enable download step)"; exit 1)
-    test -d data_raw/failures || (echo "Put Failures CSVs under data_raw/failures"; exit 1)
-    test -d data_raw/lookups || (echo "Put Lookups CSVs under data_raw/lookups"; exit 1)
+      - name: Ensure raw data folders (post-download)
+        run: |
+          test -d data_raw/results   || (echo "Expected data_raw/results after download"; exit 1)
+          test -d data_raw/failures  || (echo "Expected data_raw/failures after download"; exit 1)
+          test -d data_raw/lookups   || (echo "Expected data_raw/lookups after download"; exit 1)
 
       - name: Ingest Results → Parquet (decoded)
         run: python -m etl.ingest_results
