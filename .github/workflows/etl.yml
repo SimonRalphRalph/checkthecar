@@ -54,28 +54,82 @@ jobs:
           test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
 
       # ---- Download using curl + unzip (robust & fast) ----
-      - name: Download MOT sources (results, failures, lookups)
+         - name: Download MOT sources (results, failures, lookups)
         run: |
           set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y unzip xxd
+
           mkdir -p data_raw/results data_raw/failures data_raw/lookups
 
-          echo "Downloading results…"
-          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip" -o /tmp/results.zip
-          unzip -o -q /tmp/results.zip -d data_raw/results
+          try_download() {
+            url="$1"; out="$2"
+            echo "Fetching: $url"
+            http_code=$(curl -w '%{http_code}' -fsSL --retry 5 --retry-delay 2 --retry-connrefused -o "$out" "$url" || true)
+            echo "HTTP $http_code"
+            if [ "$http_code" != "200" ]; then
+              echo "---- first 200 bytes ----"
+              head -c 200 "$out" 2>/dev/null || true
+              echo ""
+              return 1
+            fi
+            if ! head -c 2 "$out" | grep -q 'PK'; then
+              echo "Not a ZIP (no PK header). First 64 bytes (hex):"
+              head -c 64 "$out" | xxd
+              return 1
+            fi
+            return 0
+          }
 
-          echo "Downloading failures…"
-          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip" -o /tmp/failures.zip
-          unzip -o -q /tmp/failures.zip -d data_raw/failures
+          # Candidates for RESULTS (2024)
+          RES_OUT=/tmp/results.zip
+          RES_URLS=(
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT+testing+data+results+%282024%29.zip"
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip"
+          )
 
-          echo "Downloading lookups…"
-          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip" -o /tmp/lookups.zip
-          unzip -o -q /tmp/lookups.zip -d data_raw/lookups
+          ok=0
+          for u in "${RES_URLS[@]}"; do
+            if try_download "$u" "$RES_OUT"; then ok=1; break; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "ERROR: Could not download RESULTS (2024) from any candidate URL."
+            exit 9
+          fi
+          unzip -o -q "$RES_OUT" -d data_raw/results
 
-      - name: Ensure raw data folders (post-download)
-        run: |
-          test -d data_raw/results   || (echo "Expected data_raw/results after download"; exit 1)
-          test -d data_raw/failures  || (echo "Expected data_raw/failures after download"; exit 1)
-          test -d data_raw/lookups   || (echo "Expected data_raw/lookups after download"; exit 1)
+          # Candidates for FAILURES (2024) – note the capital T in 'Testing'
+          FAIL_OUT=/tmp/failures.zip
+          FAIL_URLS=(
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT+Testing+data+failure+item+%282024%29.zip"
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip"
+          )
+
+          ok=0
+          for u in "${FAIL_URLS[@]}"; do
+            if try_download "$u" "$FAIL_OUT"; then ok=1; break; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "ERROR: Could not download FAILURE ITEMS (2024) from any candidate URL."
+            exit 9
+          fi
+          unzip -o -q "$FAIL_OUT" -d data_raw/failures
+
+          # Lookup tables
+          LOOK_OUT=/tmp/lookups.zip
+          LOOK_URLS=(
+            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip"
+          )
+
+          ok=0
+          for u in "${LOOK_URLS[@]}"; do
+            if try_download "$u" "$LOOK_OUT"; then ok=1; break; fi
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "ERROR: Could not download LOOKUP TABLES from any candidate URL."
+            exit 9
+          fi
+          unzip -o -q "$LOOK_OUT" -d data_raw/lookups
 
       - name: Ingest Results → Parquet (decoded)
         run: python -m etl.ingest_results
