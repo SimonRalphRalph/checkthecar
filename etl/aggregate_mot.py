@@ -1,78 +1,139 @@
+# etl/aggregate_mot.py
+"""
+Compute model/year aggregates used by the frontend:
+- pass_rate_by_age
+- mileage percentiles by age (p50/p75/p90)
+- failure category shares (if failures parquet present)
+
+Works with 2024+ DVSA layout (ingested by ingest_results.py):
+required columns present in Parquet dataset:
+  make, model, test_date (datetime64[ns, UTC]), odometer (Int64),
+  result ('P'/'F'), fuel_type (string), age_at_test (Int64, optional),
+  first_use_date (datetime64[ns, UTC], optional)
+"""
+
 from __future__ import annotations
+from pathlib import Path
+import json
+import numpy as np
 import pandas as pd
-import pyarrow as pa
 import pyarrow.dataset as ds
-import pyarrow.compute as pc
-from .paths import MOT_PARQUET, MOT_AGG_PARQUET, INT
-from .resolver import normalise_df
 
-BUCKET_COLS = ["brakes","steering","visibility","lights","axles_wheels_tyres_suspension","body_structure","other_equipment","emissions","other"]
+from .paths import INT, MOT_PARQUET, MOT_AGG_PARQUET
 
-def _read_results(columns=None) -> pa.Table:
+def _read_results() -> pd.DataFrame:
     dataset = ds.dataset(MOT_PARQUET, format="parquet", partitioning="hive")
-    cols = columns or dataset.schema.names
-    return dataset.to_table(columns=[c for c in cols if c in dataset.schema.names])
+    tbl = dataset.to_table()  # select all; columns are modest after ingest
+    df = tbl.to_pandas()
+    # Ensure expected columns exist
+    for c in ("make","model","test_date","odometer","result","fuel_type"):
+        if c not in df.columns:
+            raise KeyError(f"Missing required column '{c}' in results Parquet")
+    if "age_at_test" not in df.columns:
+        df["age_at_test"] = pd.Series(pd.NA, index=df.index, dtype="Int64")
+    if "first_use_date" not in df.columns:
+        df["first_use_date"] = pd.NaT
+    return df
+
+def _cohort_first_reg_year(df: pd.DataFrame) -> pd.Series:
+    test_year = pd.to_datetime(df["test_date"], utc=True).dt.year.astype("Int64")
+    first_from_date = pd.to_datetime(df["first_use_date"], utc=True, errors="coerce").dt.year.astype("Int64")
+    # infer from age if available
+    age = df["age_at_test"].astype("Int64")
+    inferred = test_year - age
+    out = first_from_date.copy()
+    out = out.where(out.notna(), inferred.where(age.notna()))
+    out = out.where(out.notna(), test_year)  # last fallback
+    return out.astype("Int64")
+
+def _percentiles(x: pd.Series) -> tuple[float,float,float]:
+    arr = pd.to_numeric(x, errors="coerce").dropna().to_numpy()
+    if arr.size == 0:
+        return (np.nan, np.nan, np.nan)
+    return (
+        float(np.nanpercentile(arr, 50)),
+        float(np.nanpercentile(arr, 75)),
+        float(np.nanpercentile(arr, 90)),
+    )
+
+def _compute_failure_shares() -> pd.DataFrame | None:
+    """Optional: read failures parquet if present.
+    Expect columns like: make, model, firstRegYear, age_at_test, category, count
+    If not present, return None and the join step will skip failures.
+    """
+    p = INT / "failures_bucketed.parquet"
+    if not p.exists():
+        return None
+    df = pd.read_parquet(p)
+    # Minimal sanity
+    needed = {"make","model","firstRegYear","category","count"}
+    if not needed.issubset(df.columns):
+        return None
+    # shares per cohort (make,model,firstRegYear)
+    grp = df.groupby(["make","model","firstRegYear","category"], dropna=False)["count"].sum().reset_index()
+    totals = grp.groupby(["make","model","firstRegYear"], dropna=False)["count"].sum().rename("total")
+    out = grp.merge(totals, left_on=["make","model","firstRegYear"], right_index=True)
+    out["share"] = out["count"] / out["total"]
+    return out[["make","model","firstRegYear","category","share"]]
 
 def compute_aggregates() -> pd.DataFrame:
-    cols = ["test_id","make","model","first_use_year","age_at_test","fuel_type","odometer","result"]
-    tbl = _read_results(columns=cols)
+    df = _read_results().copy()
 
-    for name, typ in (("first_use_year", pa.int16()), ("age_at_test", pa.int16()), ("odometer", pa.int32())):
-        if name in tbl.schema.names:
-            tbl = tbl.set_column(tbl.schema.get_field_index(name), name, pc.cast(tbl[name], typ))
+    # Compute cohort year (firstRegYear)
+    df["firstRegYear"] = _cohort_first_reg_year(df)
 
-    df = tbl.to_pandas(types_mapper=pd.ArrowDtype)
-    df = normalise_df(df, "make", "model")
+    # Ensure age buckets (drop rows with unknown age for age-based metrics)
+    # If age_at_test is NA, we can still contribute to cohort size but not to curves.
+    age_known = df["age_at_test"].notna()
+    df_age = df[age_known].copy()
 
-    df["is_pass"] = (df["result"].astype(str).str.upper() == "PASS").astype("int8")
-    df["odo_k"] = pd.to_numeric(df["odometer"], errors="coerce") / 1000.0
-    df.loc[(df["odo_k"] < 1) | (df["odo_k"] > 600), "odo_k"] = pd.NA
-
-    grp = ["norm_make","norm_model","make_slug","model_slug","first_use_year","age_at_test","fuel_type"]
-
-    base = (
-        df.groupby(grp, dropna=False)
-          .agg(
-              tests=("is_pass","size"),
-              passes=("is_pass","sum"),
-              median_mileage=("odo_k","median"),
-              p75_mileage=("odo_k", lambda s: s.quantile(0.75)),
-              p90_mileage=("odo_k", lambda s: s.quantile(0.90)),
-          ).reset_index()
+    # ---------- Pass rate by age ----------
+    df_age["is_pass"] = (df_age["result"].astype(str) == "P").astype(int)
+    pass_rate = (
+        df_age.groupby(["make","model","firstRegYear","age_at_test"], dropna=False)["is_pass"]
+        .mean()
+        .rename("pass_rate")
+        .reset_index()
     )
-    base["pass_rate"] = (base["passes"] / base["tests"]).astype("float32")
 
-    # Failure mix
-    fail_path = INT / "failures.parquet"
-    for c in BUCKET_COLS: base[c] = 0.0
-    if fail_path.exists():
-        fdf = pd.read_parquet(fail_path)[["fail_bucket","test_id"] if "test_id" in pd.read_parquet(fail_path).columns else ["fail_bucket"]]
+    # ---------- Mileage percentiles by age ----------
+    miles_pct = (
+        df_age.groupby(["make","model","firstRegYear","age_at_test"], dropna=False)["odometer"]
+        .apply(_percentiles)
+        .reset_index()
+        .rename(columns={"odometer":"pct"})
+    )
+    # split tuple column into p50/p75/p90
+    miles_pct[["p50","p75","p90"]] = pd.DataFrame(miles_pct["pct"].tolist(), index=miles_pct.index)
+    miles_pct = miles_pct.drop(columns=["pct"])
 
-        if "test_id" in fdf.columns and "test_id" in df.columns:
-            # TRUE per-cohort shares via join on test_id (best)
-            j = df[df["is_pass"] == 0][["test_id", *grp]].merge(fdf, on="test_id", how="inner")
-            mix = (
-                j.groupby([*grp,"fail_bucket"]).size().rename("n").reset_index()
-            )
-            tot = mix.groupby(grp)["n"].sum().rename("tot").reset_index()
-            mix = mix.merge(tot, on=grp, how="left")
-            mix["share"] = (mix["n"] / mix["tot"]).astype("float32")
-            pivot = mix.pivot_table(index=grp, columns="fail_bucket", values="share", fill_value=0.0, aggfunc="sum").reset_index()
-            base = base.merge(pivot, on=grp, how="left").fillna(0.0)
-        else:
-            # Heuristic: global bucket shares broadcast per cohort
-            g = fdf.groupby("fail_bucket").size().rename("n").reset_index()
-            g["share"] = (g["n"] / g["n"].sum()).astype("float32")
-            for b in BUCKET_COLS:
-                val = g.loc[g["fail_bucket"]==b, "share"]
-                base[b] = float(val.iloc[0]) if len(val) else 0.0
+    # ---------- Failure shares (optional) ----------
+    fail_shares = _compute_failure_shares()  # None if not available
 
-    for c in ("pass_rate","median_mileage","p75_mileage","p90_mileage", *BUCKET_COLS):
-        base[c] = base[c].astype("float32")
+    # ---------- Assemble a single tidy table ----------
+    # We’ll write a single Parquet where each row represents a (make,model,firstRegYear,age) with
+    # pass_rate + mileage percentiles; and we’ll also write a separate table for failure shares if present.
+    out = pass_rate.merge(
+        miles_pct,
+        on=["make","model","firstRegYear","age_at_test"],
+        how="outer",
+        validate="one_to_one",
+    )
 
-    base.to_parquet(MOT_AGG_PARQUET, index=False)
-    print(f"[aggregate_mot] wrote {MOT_AGG_PARQUET} rows={len(base):,}")
-    return base
+    # Save primary aggregates
+    MOT_AGG_PARQUET.parent.mkdir(parents=True, exist_ok=True)
+    out.to_parquet(MOT_AGG_PARQUET, index=False)
+    print(f"[aggregate_mot] wrote {len(out):,} rows -> {MOT_AGG_PARQUET}")
+
+    # Save failure shares next to it if we have them
+    if fail_shares is not None:
+        p = INT / "failure_shares.parquet"
+        fail_shares.to_parquet(p, index=False)
+        print(f"[aggregate_mot] wrote failure shares -> {p} ({len(fail_shares):,} rows)")
+    else:
+        print("[aggregate_mot] no failures parquet found; skipping failure shares")
+
+    return out
 
 if __name__ == "__main__":
     compute_aggregates()
