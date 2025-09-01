@@ -53,12 +53,23 @@ jobs:
         run: |
           test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
 
+      # ---- Download using curl + unzip (robust & fast) ----
       - name: Download MOT sources (results, failures, lookups)
         run: |
-          python -m etl.download_sources \
-            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip" \
-            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip" \
-            "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip"
+          set -euo pipefail
+          mkdir -p data_raw/results data_raw/failures data_raw/lookups
+
+          echo "Downloading results…"
+          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2Btesting%2Bdata%2Bresults%2B%282024%29.zip" -o /tmp/results.zip
+          unzip -o -q /tmp/results.zip -d data_raw/results
+
+          echo "Downloading failures…"
+          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/MOT%2BTesting%2Bdata%2Bfailure%2Bitem%2B%282024%29.zip" -o /tmp/failures.zip
+          unzip -o -q /tmp/failures.zip -d data_raw/failures
+
+          echo "Downloading lookups…"
+          curl -L "https://edh-dvsa-data-gov-uk-files-prod.s3.eu-west-1.amazonaws.com/lookup.zip" -o /tmp/lookups.zip
+          unzip -o -q /tmp/lookups.zip -d data_raw/lookups
 
       - name: Ensure raw data folders (post-download)
         run: |
