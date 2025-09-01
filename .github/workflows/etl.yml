@@ -54,7 +54,7 @@ jobs:
           test -f data_intermediate/ved_bands.json || (echo "Missing data_intermediate/ved_bands.json" && exit 1)
 
       # ---- Download using curl + unzip (robust & fast) ----
-         - name: Download MOT sources (results, failures, lookups)
+      - name: Download MOT sources (results, failures, lookups)
         run: |
           set -euo pipefail
           sudo apt-get update -y
