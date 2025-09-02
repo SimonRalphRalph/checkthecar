@@ -1,0 +1,1 @@
+{"make":"BMW","model":"228","make_slug":"bmw","model_slug":"228","first_reg_year":2014,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":9,"tests":null,"pass_rate":0.7,"mileage":{"p50":73731.0,"p75":73750.0,"p90":81298.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

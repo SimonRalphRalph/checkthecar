@@ -1,0 +1,1 @@
+{"make":"LHY","model":"M150","make_slug":"lhy","model_slug":"m150","first_reg_year":2022,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":2,"tests":null,"pass_rate":1.0,"mileage":{"p50":149.0,"p75":149.0,"p90":149.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

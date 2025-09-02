@@ -1,0 +1,1 @@
+{"make":"HONDA","model":"CB","make_slug":"honda","model_slug":"cb","first_reg_year":1974,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":50,"tests":null,"pass_rate":1.0,"mileage":{"p50":null,"p75":null,"p90":null},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
