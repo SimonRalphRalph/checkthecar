@@ -1,0 +1,1 @@
+{"make":"HONDA","model":"SH","make_slug":"honda","model_slug":"sh","first_reg_year":2020,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":3,"tests":null,"pass_rate":1.0,"mileage":{"p50":8329.0,"p75":8329.0,"p90":8329.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

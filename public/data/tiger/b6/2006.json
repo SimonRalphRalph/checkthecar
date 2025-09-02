@@ -1,0 +1,1 @@
+{"make":"TIGER","model":"B6","make_slug":"tiger","model_slug":"b6","first_reg_year":2006,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":18,"tests":null,"pass_rate":1.0,"mileage":{"p50":3459.0,"p75":3459.0,"p90":3459.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

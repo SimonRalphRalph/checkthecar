@@ -1,0 +1,1 @@
+{"make":"KTM","model":"690R","make_slug":"ktm","model_slug":"690r","first_reg_year":2009,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":14,"tests":null,"pass_rate":1.0,"mileage":{"p50":9362.0,"p75":9362.0,"p90":9362.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

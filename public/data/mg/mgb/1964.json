@@ -1,0 +1,1 @@
+{"make":"MG","model":"MGB","make_slug":"mg","model_slug":"mgb","first_reg_year":1964,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":60,"tests":null,"pass_rate":0.5,"mileage":{"p50":43886.0,"p75":43892.0,"p90":43892.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
