@@ -1,0 +1,1 @@
+{"make":"KTM","model":"DUKE","make_slug":"ktm","model_slug":"duke","first_reg_year":2011,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":12,"tests":null,"pass_rate":0.0,"mileage":{"p50":8132.0,"p75":8132.0,"p90":8132.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

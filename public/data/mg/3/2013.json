@@ -1,0 +1,1 @@
+{"make":"MG","model":"3","make_slug":"mg","model_slug":"3","first_reg_year":2013,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":10,"tests":null,"pass_rate":0.8,"mileage":{"p50":70216.0,"p75":82197.0,"p90":93893.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

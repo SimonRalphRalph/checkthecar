@@ -1,0 +1,1 @@
+{"make":"SYM","model":"PU","make_slug":"sym","model_slug":"pu","first_reg_year":2016,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":7,"tests":null,"pass_rate":0.333,"mileage":{"p50":13930.0,"p75":13935.0,"p90":13938.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

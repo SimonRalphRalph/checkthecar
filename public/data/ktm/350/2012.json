@@ -1,0 +1,1 @@
+{"make":"KTM","model":"350","make_slug":"ktm","model_slug":"350","first_reg_year":2012,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":11,"tests":null,"pass_rate":0.438,"mileage":{"p50":5964.0,"p75":5968.0,"p90":5968.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
