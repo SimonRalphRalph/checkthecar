@@ -7,7 +7,12 @@ import pandas as pd
 
 from .paths import MOT_AGG_PARQUET, RECALLS_PARQUET, VCA_PARQUET, PUB, VED_JSON, INT
 from .ved import load_ved_bands, ved_for_vehicle
-
+try:
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(line_buffering=True)
+except Exception:
+    pass
 # --- norm/slug helpers ---
 try:
     from .resolver import norm as _norm, slug as _slug
