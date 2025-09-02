@@ -161,59 +161,91 @@ def build_and_publish() -> int:
     total = len(cohorts)
     print(f"Cohorts to publish in this shard: {total} (shard {shard_idx+1}/{shard_cnt})")
 
+    def safe_slug(val: str, fallback: str) -> str:
+        s = _slug(val or "")
+        if not s:
+            s = _slug(_norm(val or "")) or fallback
+        return s
+
     out_count = 0
+    skipped = 0
+
     for i, r in enumerate(cohorts.itertuples(index=False), start=1):
-        make, model, mk_norm, md_norm, mk_slug, md_slug, year = r
-        msub = mot[(mot["norm_make"]==mk_norm) & (mot["norm_model"]==md_norm) & (mot["firstRegYear"]==year)].sort_values("age_at_test")
-        if msub.empty:
-            continue
+        try:
+            make, model, mk_norm, md_norm, mk_slug, md_slug, year = r
+            # guard slugs (some odd strings can end up empty)
+            mk_slug = mk_slug if mk_slug else safe_slug(make, "make")
+            md_slug = md_slug if md_slug else safe_slug(model, "model")
 
-        fail_top = _top_buckets(fail.get((mk_norm, md_norm, int(year)), {}))
+            year = int(year) if pd.notna(year) else None
+            if year is None:
+                raise ValueError("missing year")
 
-        curve = []
-        for rr in msub.itertuples(index=False):
-            curve.append({
-                "age": int(rr.age_at_test) if pd.notna(rr.age_at_test) else None,
-                "tests": None,
-                "pass_rate": _compact_float(rr.pass_rate, 3),
-                "mileage": {
-                    "p50": _compact_float(getattr(rr, "p50", None), 0),
-                    "p75": _compact_float(getattr(rr, "p75", None), 0),
-                    "p90": _compact_float(getattr(rr, "p90", None), 0),
+            # rows for this cohort
+            msub = mot[
+                (mot["norm_make"] == mk_norm)
+                & (mot["norm_model"] == md_norm)
+                & (mot["firstRegYear"] == year)
+            ].sort_values("age_at_test")
+
+            if msub.empty:
+                raise ValueError("empty cohort slice")
+
+            fail_top = _top_buckets(fail.get((mk_norm, md_norm, int(year)), {}))
+
+            curve = []
+            for rr in msub.itertuples(index=False):
+                curve.append({
+                    "age": int(rr.age_at_test) if pd.notna(rr.age_at_test) else None,
+                    "tests": None,
+                    "pass_rate": _compact_float(rr.pass_rate, 3),
+                    "mileage": {
+                        "p50": _compact_float(getattr(rr, "p50", None), 0),
+                        "p75": _compact_float(getattr(rr, "p75", None), 0),
+                        "p90": _compact_float(getattr(rr, "p90", None), 0),
+                    },
+                    "fail_mix": fail_top,
+                })
+
+            co2_panel = _vca_panel(vca, mk_norm, md_norm, int(year), ved)
+            recalls   = _recall_timeline(rec, mk_norm, md_norm)
+
+            doc = {
+                "make": make,
+                "model": model,
+                "make_slug": mk_slug,
+                "model_slug": md_slug,
+                "first_reg_year": int(year),
+                "fuels": sorted({(p.get("fuel") or "").lower() for p in co2_panel if p.get("fuel")}) if co2_panel else [],
+                "co2_panel": co2_panel,
+                "recalls": recalls,
+                "mot_curve": curve,
+                "meta": {
+                    "source": "DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED",
+                    "version": "weekly",
                 },
-                "fail_mix": fail_top,
-            })
+            }
 
-        co2_panel = _vca_panel(vca, mk_norm, md_norm, int(year), ved)
-        recalls   = _recall_timeline(rec, mk_norm, md_norm)
+            out_dir = PUB / mk_slug / md_slug
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / f"{int(year)}.json"
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
 
-        doc = {
-            "make": make,
-            "model": model,
-            "make_slug": mk_slug,
-            "model_slug": md_slug,
-            "first_reg_year": int(year),
-            "fuels": sorted({(p.get("fuel") or "").lower() for p in co2_panel if p.get("fuel")}) if co2_panel else [],
-            "co2_panel": co2_panel,
-            "recalls": recalls,
-            "mot_curve": curve,
-            "meta": {
-                "source": "DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED",
-                "version": "weekly",
-            },
-        }
+            out_count += 1
+            if i % 200 == 0 or i == total:
+                print(f"...{i}/{total} cohorts processed (written={out_count}, skipped={skipped}) in shard {shard_idx+1}/{shard_cnt}")
 
-        out_dir = PUB / mk_slug / md_slug
-        out_dir.mkdir(parents=True, exist_ok=True)
-        out_path = out_dir / f"{int(year)}.json"
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(doc, f, ensure_ascii=False, separators=(",",":"))
-        out_count += 1
+        except Exception as e:
+            skipped += 1
+            # log enough to find the offender next time
+            try:
+                print(f"[WARN] skipped cohort #{i} shard {shard_idx+1}/{shard_cnt} "
+                      f"({r.norm_make}/{r.norm_model}/{int(r.firstRegYear) if pd.notna(r.firstRegYear) else 'NA'}): {e}")
+            except Exception:
+                print(f"[WARN] skipped cohort #{i} shard {shard_idx+1}/{shard_cnt}: {e}")
 
-        if i % 200 == 0 or i == total:
-            print(f"...{i}/{total} cohorts written in shard {shard_idx+1}/{shard_cnt}")
-
-    print(f"Published {out_count} cohort JSON files to {PUB}")
+    print(f"Published {out_count} cohort JSON files to {PUB} (skipped={skipped})")
     return out_count
 
 if __name__ == "__main__":
