@@ -156,7 +156,10 @@ jobs:
         run: python -m etl.aggregate_mot
 
       - name: Join & publish JSON to public/data
-        run: python -m etl.join_publish
+        env:
+          ETL_MAX_COHORTS: "200"         # cap for speed while testing
+          ETL_YEAR_MIN: "2009"           # optional: focus on your target age range
+        run: python -u -m etl.join_publish
 
       - name: Quick validation of outputs
         run: |
