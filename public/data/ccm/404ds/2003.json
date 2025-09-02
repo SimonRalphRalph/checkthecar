@@ -1,0 +1,1 @@
+{"make":"CCM","model":"404DS","make_slug":"ccm","model_slug":"404ds","first_reg_year":2003,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":20,"tests":null,"pass_rate":1.0,"mileage":{"p50":730.0,"p75":730.0,"p90":730.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

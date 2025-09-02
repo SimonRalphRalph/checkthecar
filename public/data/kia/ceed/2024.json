@@ -1,0 +1,1 @@
+{"make":"KIA","model":"CEED","make_slug":"kia","model_slug":"ceed","first_reg_year":2024,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":0,"tests":null,"pass_rate":1.0,"mileage":{"p50":233.0,"p75":282.0,"p90":311.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

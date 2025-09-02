@@ -1,0 +1,1 @@
+{"make":"RIEJU","model":"MRT","make_slug":"rieju","model_slug":"mrt","first_reg_year":2017,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":6,"tests":null,"pass_rate":0.2,"mileage":{"p50":118.0,"p75":407.0,"p90":7056.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
