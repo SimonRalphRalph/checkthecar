@@ -199,8 +199,8 @@ jobs:
 
       - name: Install deps
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+         python -m pip install --upgrade pip
+         pip install -r requirements.txt
 
       - name: Download ETL intermediates
         uses: actions/download-artifact@v4
@@ -212,9 +212,8 @@ jobs:
         env:
           ETL_SHARD: "${{ matrix.shard }}"
           ETL_SHARDS: "8"
-          # Optional throttles while testing:
-          # ETL_MAX_COHORTS: "300"
-          # ETL_YEAR_MIN: "2009"
+          PYTHONFAULTHANDLER: "1"
+          # ETL_MAX_COHORTS: "400"   # (leave commented unless you want to cap)
         run: python -u -m etl.join_publish
 
       - name: Commit cohort JSON for this shard
