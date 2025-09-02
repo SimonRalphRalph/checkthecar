@@ -1,0 +1,1 @@
+{"make":"MASH","model":"XY","make_slug":"mash","model_slug":"xy","first_reg_year":2016,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":7,"tests":null,"pass_rate":1.0,"mileage":{"p50":23018.0,"p75":30740.0,"p90":30740.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

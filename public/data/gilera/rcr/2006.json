@@ -1,0 +1,1 @@
+{"make":"GILERA","model":"RCR","make_slug":"gilera","model_slug":"rcr","first_reg_year":2006,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":17,"tests":null,"pass_rate":0.5,"mileage":{"p50":59.0,"p75":59.0,"p90":59.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
