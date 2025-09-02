@@ -1,0 +1,1 @@
+{"make":"CCM","model":"GP","make_slug":"ccm","model_slug":"gp","first_reg_year":2015,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":8,"tests":null,"pass_rate":1.0,"mileage":{"p50":5494.0,"p75":7618.0,"p90":8892.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

@@ -1,0 +1,1 @@
+{"make":"BMW","model":"140","make_slug":"bmw","model_slug":"140","first_reg_year":2017,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":6,"tests":null,"pass_rate":0.5,"mileage":{"p50":50880.0,"p75":50880.0,"p90":50880.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

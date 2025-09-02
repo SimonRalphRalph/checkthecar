@@ -1,0 +1,1 @@
+{"make":"MZ","model":"S51","make_slug":"mz","model_slug":"s51","first_reg_year":1988,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":35,"tests":null,"pass_rate":1.0,"mileage":{"p50":2320.0,"p75":2320.0,"p90":2320.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
