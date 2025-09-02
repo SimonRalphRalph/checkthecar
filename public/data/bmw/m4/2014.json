@@ -1,0 +1,1 @@
+{"make":"BMW","model":"M4","make_slug":"bmw","model_slug":"m4","first_reg_year":2014,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":9,"tests":null,"pass_rate":0.944,"mileage":{"p50":58796.0,"p75":65241.0,"p90":76522.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

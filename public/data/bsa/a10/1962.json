@@ -1,0 +1,1 @@
+{"make":"BSA","model":"A10","make_slug":"bsa","model_slug":"a10","first_reg_year":1962,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":62,"tests":null,"pass_rate":1.0,"mileage":{"p50":1985.0,"p75":1985.0,"p90":1985.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

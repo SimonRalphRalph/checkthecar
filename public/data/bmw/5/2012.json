@@ -1,0 +1,1 @@
+{"make":"BMW","model":"5","make_slug":"bmw","model_slug":"5","first_reg_year":2012,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":11,"tests":null,"pass_rate":0.5,"mileage":{"p50":118648.0,"p75":118650.0,"p90":118651.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

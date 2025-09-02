@@ -1,0 +1,1 @@
+{"make":"HONDA","model":"QR","make_slug":"honda","model_slug":"qr","first_reg_year":2020,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":3,"tests":null,"pass_rate":1.0,"mileage":{"p50":440.0,"p75":440.0,"p90":440.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

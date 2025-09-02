@@ -1,0 +1,1 @@
+{"make":"BUCKLER","model":"MK15","make_slug":"buckler","model_slug":"mk15","first_reg_year":1962,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":61,"tests":null,"pass_rate":1.0,"mileage":{"p50":7.0,"p75":7.0,"p90":7.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}

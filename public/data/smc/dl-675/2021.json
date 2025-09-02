@@ -1,0 +1,1 @@
+{"make":"SMC","model":"DL 675","make_slug":"smc","model_slug":"dl-675","first_reg_year":2021,"fuels":[],"co2_panel":[],"recalls":[],"mot_curve":[{"age":3,"tests":null,"pass_rate":1.0,"mileage":{"p50":78.0,"p75":78.0,"p90":78.0},"fail_mix":[]}],"meta":{"source":"DVSA anonymised MOT results & failure items (OGL v3.0); DVSA Recalls; VCA CO₂/MPG; GOV.UK VED","version":"weekly"}}
