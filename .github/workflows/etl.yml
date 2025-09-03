@@ -212,6 +212,8 @@ jobs:
         env:
           ETL_SHARD: "${{ matrix.shard }}"
           ETL_SHARDS: "8"
+          ETL_YEAR_MIN: "2005"
+          ETL_YEAR_MAX: "2012"
           PYTHONFAULTHANDLER: "1"
           # ETL_MAX_COHORTS: "400"   # (leave commented unless you want to cap)
         run: python -u -m etl.join_publish
