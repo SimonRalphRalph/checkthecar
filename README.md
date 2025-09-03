@@ -4,7 +4,6 @@
 
 The goal: make it easy to explore reliability trends, common failure points, mileage patterns, emissions, and tax information across makes and models of cars tested in the UK.  
 
----
 
 ## Features
 
@@ -15,7 +14,6 @@ The goal: make it easy to explore reliability trends, common failure points, mil
 **Environmental data** — CO₂, MPG, and Vehicle Excise Duty (VED) bands.  
 **Automated pipeline** — fresh datasets are pulled and processed weekly via GitHub Actions.  
 
----
 
 ## Data Sources
 
@@ -26,7 +24,6 @@ The goal: make it easy to explore reliability trends, common failure points, mil
 
 All datasets are published under the **Open Government Licence (OGL v3.0)**.
 
----
 
 ## Repo Structure
 
@@ -37,7 +34,6 @@ public/data/ # JSON outputs consumed by the website
 .github/workflows/ # GitHub Actions workflows (ETL automation)
 
 
----
 
 ## Tech Stack
 
@@ -46,7 +42,6 @@ public/data/ # JSON outputs consumed by the website
 - **Next.js + React + Tailwind** for the website frontend  
 - **GitHub Pages** for hosting  
 
----
 
 ## Status
 
