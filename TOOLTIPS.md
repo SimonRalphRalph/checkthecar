@@ -1,0 +1,4 @@
+- **Major vs Dangerous MOT failure**: Major = car didn’t meet legal standard. Dangerous = immediate risk to road safety.
+- **WLTP vs NEDC**: WLTP is the modern fuel/CO₂ test (since 2017/2018). NEDC is older and less realistic.
+- **Mileage percentiles**: P50 = median. P75 = higher than 75% of cars. P90 = high-use cars.
+- **VED (car tax)**: Annual charge depends on CO₂ band, first year vs ongoing, and supplements for >£40k list price.
