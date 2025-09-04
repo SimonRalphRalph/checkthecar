@@ -1,7 +1,7 @@
 🚗 **Check-A-Car** helps UK used car buyers and researchers understand MOT reliability, common failures, recalls, and running costs.  
 Data is sourced from DVSA, VCA, and GOV.UK (OGL v3.0), refreshed weekly.
 
-**Check-A-Car** is an open-source project that transforms the UK’s publicly available **DVSA MOT dataset** into an accessible, visual resource for drivers, researchers, and enthusiasts.  
+This is an open-source project that transforms the UK’s publicly available **DVSA MOT dataset** into an accessible, visual resource for drivers, researchers, and enthusiasts.  
 
 The goal: make it easy to explore reliability trends, common failure points, mileage patterns, emissions, and tax information across makes and models of cars tested in the UK.  
 
